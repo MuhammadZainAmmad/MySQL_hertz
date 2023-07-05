@@ -152,23 +152,23 @@ for query in sql_queries:
     list_responseSets.append(responseSet_df)  
   
 # sending each response set in a different message on slack    
-# for res in list_responseSets:    
-#     if len(res.columns)>5: # if result set has more than 5 columns (query3), split df on column axis
-#         df_market = res.iloc[:, 0] # separating first column (market)
-#         for i in range(1, len(res.columns), 4):
-#             df = pd.concat([df_market, res.iloc[:, i:i+4]], axis=1)
-#             markdown_table = df.to_markdown(index=False, tablefmt="grid")
-#             response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
-#     else:
-#         markdown_table = res.to_markdown(index=False, tablefmt="grid")
-#         response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+for res in list_responseSets:    
+    if len(res.columns)>5: # if result set has more than 5 columns (query3), split df on column axis
+        df_market = res.iloc[:, 0] # separating first column (market)
+        for i in range(1, len(res.columns), 4):
+            df = pd.concat([df_market, res.iloc[:, i:i+4]], axis=1)
+            markdown_table = df.to_markdown(index=False, tablefmt="grid")
+            response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+    else:
+        markdown_table = res.to_markdown(index=False, tablefmt="grid")
+        response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
         
 # sending all response set as one email on gmail account
-merge_df = list_responseSets[0]
-for resIndx in range(1, len(list_responseSets)):
-    merge_df = pd.concat([merge_df, list_responseSets[resIndx]], axis=1)
-html = merge_df.to_markdown(index=False, tablefmt="html")
-message = MIMEText(html,'html')
+mergeHTML = ''
+for res in list_responseSets:
+    html = res.to_markdown(index=False, tablefmt="html")
+    mergeHTML += f'{html}<hr/>'
+message = MIMEText(mergeHTML,'html')
 message['to'] = 'zain.at.hertz@gmail.com'
 message['from'] = "it@stayloom.com"
 message['subject'] = "Test"
