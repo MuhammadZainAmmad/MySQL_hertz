@@ -3,17 +3,13 @@ import os
 import pandas as pd
 from slack_sdk import WebClient
 
-channel_id = "C05E96Q6PFB"
-slack_token = os.environ['slackAPIToken_task1']
-client = WebClient(token=slack_token)
-
+# MySQL connection
 conn = mysql.connector.connect(
     host="104.155.129.36",
     user="etl",
     password=os.environ["heirloom_pass"],
     database="heirloom",
 )
-
 cursor = conn.cursor()
 
 sql_queries = [
@@ -102,10 +98,10 @@ sql_queries = [
                 MAX(`Monthly Proj`) AS Max_MonthlyProj,
                 AVG(`Monthly Proj`) AS Avg_MonthlyProj,
                 SUM(`Monthly Proj`) AS Total_MonthlyProj,
-                MIN(`Final Monthly Projection`) AS Min_FinalMonthlyProjection,
-                MAX(`Final Monthly Projection`) AS Max_FinalMonthlyProjection,
-                AVG(`Final Monthly Projection`) AS Avg_FinalMonthlyProjection,
-                SUM(`Final Monthly Projection`) AS Total_FinalMonthlyProjection,
+                MIN(`Final Monthly Projection`) AS Min_FinalMonthlyProj,
+                MAX(`Final Monthly Projection`) AS Max_FinalMonthlyProj,
+                AVG(`Final Monthly Projection`) AS Avg_FinalMonthlyProj,
+                SUM(`Final Monthly Projection`) AS Total_FinalMonthlyProj,
                 MIN(`Market_Monthly_Proj_New`) AS Min_MarketMonthlyProjNew,
                 MAX(`Market_Monthly_Proj_New`) AS Max_MarketMonthlyProjNew,
                 AVG(`Market_Monthly_Proj_New`) AS Avg_MarketMonthlyProjNew,
@@ -115,11 +111,21 @@ sql_queries = [
         """
 ]
 
+# setup for slack
+channel_id = "C05E96Q6PFB"
+slack_token = os.environ['slackAPIToken_task1']
+client = WebClient(token=slack_token)
+
+# Querying db, getting reult set in df, saving all response set in a list
+list_responseSets = []
 for query in sql_queries: 
-    res = pd.read_sql(query, conn)
-    
-    if len(res.columns)>5:
-        df_market = res.iloc[:, 0]
+    responseSet_df = pd.read_sql(query, conn)
+    list_responseSets.append(responseSet_df)  
+  
+# sending each response set in a different message on slack    
+for res in list_responseSets:    
+    if len(res.columns)>5: # if result set has more than 5 columns (query3), split df on column axis
+        df_market = res.iloc[:, 0] # separating first column (market)
         for i in range(1, len(res.columns), 4):
             df = pd.concat([df_market, res.iloc[:, i:i+4]], axis=1)
             markdown_table = df.to_markdown(index=False, tablefmt="grid")
