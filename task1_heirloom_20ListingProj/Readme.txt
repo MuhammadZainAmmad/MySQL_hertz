@@ -11,3 +11,8 @@
 3) Gmail Api
 4) Airflow
 5) google sheets api 
+
+=================== Prerequisites ==================
+pip install mysql-connector-python
+pip install slack-sdk
+
