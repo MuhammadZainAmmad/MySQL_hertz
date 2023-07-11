@@ -195,22 +195,37 @@ def service_account_login():
 service=service_account_login()
 
 # Querying db, getting reult set in df, saving all response set in a list
+pd.options.display.float_format = '{:,.2f}'.format # for dealing with large float values in resultset dfs
 list_responseSets = []
 for query in sql_queries: 
     responseSet_df = pd.read_sql(query, conn)
     list_responseSets.append(responseSet_df)  
 
-# sending each response set in a different message on slack    
-for res in list_responseSets:    
+# sending each response set in a different message on slack  
+# cant send more than 5 columns in one message on slack with proper formatting  
+# cant send more than 35 rows in one message on slack with proper formatting 
+for res in list_responseSets:   
     if len(res.columns)>5: # if result set has more than 5 columns (query3), split df on column axis
         df_market = res.iloc[:, 0] # separating first column (market)
         for i in range(1, len(res.columns), 4):
             df = pd.concat([df_market, res.iloc[:, i:i+4]], axis=1)
-            markdown_table = df.to_markdown(index=False, tablefmt="grid")
-            response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+            if len(df) > 35:
+                for firstRow in range(0, len(df)-29, 30):
+                    splitRes = df.iloc[firstRow:firstRow+30, : ]
+                    markdown_table = splitRes.to_markdown(index=False, tablefmt="grid")
+                    response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+            else:
+                markdown_table = df.to_markdown(index=False, tablefmt="grid")
+                response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
     else:
-        markdown_table = res.to_markdown(index=False, tablefmt="grid")
-        response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+        if len(res) > 35:
+            for firstRow in range(0, len(res)-29, 30):
+                splitRes = res.iloc[firstRow:firstRow+30, : ]
+                markdown_table = splitRes.to_markdown(index=False, tablefmt="grid")
+                response = client.chat_postMessage(channel=channel_id, text= f"```{markdown_table}```")
+        else:
+            markdown_table = res.to_markdown(index=False, tablefmt="grid")
+            response = client.chat_postMessage(channel=channel_id, text= markdown_table)
         
 # sending all response set as one email on gmail account
 mergeHTML = ''
